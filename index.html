@@ -18,7 +18,8 @@
 .task{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;margin:10px 0}.task.done{border-color:#86efac;background:#f0fdf4}.task.fail{border-color:#fca5a5;background:#fff7f7}.five{font-size:11px;font-weight:900;color:#475569;letter-spacing:.5px}.task-text{font-size:14px;line-height:1.45;margin:6px 0 12px}
 label{display:block;font-size:11px;font-weight:800;color:#475569;margin:11px 0 5px}input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#fff}textarea{min-height:62px;resize:vertical}.sticky-actions{position:sticky;bottom:0;background:#f4f6f9f5;padding:10px 0 0;z-index:10}
 table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:top}th{background:#f8fafc}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.badge-ok{background:#dcfce7;color:#166534}.badge-no{background:#fee2e2;color:#991b1b}.badge-pend{background:#e5e7eb;color:#475569}
-@media(max-width:650px){.grid{grid-template-columns:1fr}.container{padding:10px 10px 40px}.card{padding:13px}.hero h1{font-size:20px}.task .row{gap:6px}.task .btn{flex:1;min-width:105px}}
+.history-toolbar{display:flex;gap:8px;flex-wrap:wrap}.history-table{overflow:auto}.history-table table{min-width:760px}.history-row{cursor:pointer}.history-row:hover{background:#f8fafc}.obs-toggle{border:0;background:none;color:#164e86;font-weight:800;padding:0}.detail-box{display:none;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}.detail-box.open{display:block}.obs-item{border-bottom:1px solid var(--line);padding:9px 0}.obs-item:last-child{border-bottom:0}.tag{display:inline-block;padding:4px 7px;border-radius:999px;background:#eef2f6;font-size:11px;font-weight:800}.empty{padding:18px;text-align:center;color:var(--muted);background:#f8fafc;border-radius:12px}.delete-record{border:1px solid #f0b5b5!important;color:#b42318!important}
+.creator-note{font-size:12px;line-height:1.45;color:#475569}@media(max-width:650px){.grid{grid-template-columns:1fr}.container{padding:10px 10px 40px}.card{padding:13px}.hero h1{font-size:20px}.task .row{gap:6px}.task .btn{flex:1;min-width:105px}}
 </style>
 </head>
 <body>
@@ -28,6 +29,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px
 <div class="card hero"><h1>Control de calidad 5S</h1><p class="muted">Seleccione un área y registre únicamente el avance real de las 5S. Cada ✓ aumenta automáticamente el porcentaje; X y Pendiente no lo aumentan.</p></div>
 <div class="card"><div class="row"><div class="grow"><h2>Resumen general</h2><div class="muted">Estado de las 9 áreas en este dispositivo</div></div><div class="pct" id="overallPct">0%</div></div><div class="progress"><div id="overallFill"></div></div><div class="statgrid"><div class="stat"><strong id="overallDone">0</strong><span>✓ cumplidas</span></div><div class="stat"><strong id="overallNo">0</strong><span>X no cumplidas</span></div><div class="stat"><strong id="overallPending">0</strong><span>pendientes</span></div></div></div>
 <div class="card"><h2>Áreas de evaluación</h2><p class="muted">Cada área tiene su propio porcentaje y checklist.</p><div id="areaGrid" class="grid"></div></div>
+<div class="card"><div class="row"><div class="grow"><h2>Historial de evaluaciones</h2><div class="muted">Registro de cada evaluación guardada, con porcentaje y observaciones desplegables.</div></div><button id="refreshHistoryBtn" class="btn btn-light btn-small">Actualizar</button></div><div class="history-toolbar" style="margin:10px 0"><button id="exportHistoryBtn" class="btn btn-primary btn-small">Exportar registros</button><button id="clearHistoryBtn" type="button" class="btn btn-light btn-small">🗑 Borrar historial de pruebas</button></div><div id="historySummary" class="statgrid"></div><div id="historyList" class="history-table" style="margin-top:10px"></div><p class="creator-note">Los registros se guardan en la base de datos local del navegador de este dispositivo. Para compartirlos o conservar una copia, use “Exportar registros”.</p></div>
 <div class="card"><h2>Regla del porcentaje</h2><div class="notice"><b>Porcentaje = tareas con ✓ ÷ total de tareas × 100.</b><br>Una X significa que la tarea no está cumplida y no suma. Pendiente tampoco suma.</div></div>
 </section>
 <section id="evaluation" class="view">
@@ -40,23 +42,154 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px
 <section id="report" class="view"><div class="card"><div class="row"><button id="reportBack" class="btn btn-light">← Áreas</button><div class="grow"></div><b id="reportTitle"></b></div></div><div class="card"><h2>Resumen del área</h2><div id="reportBody"></div></div></section>
 </main>
 <script>
-const AREAS = {"Carrocería y latonería": [["SEIRI", "Retirar del puesto elementos, materiales y herramientas que no sean necesarios."], ["SEITON", "Mantener herramientas y equipos ubicados en lugares definidos y señalizados."], ["SEITON", "Mantener bahías, pasillos y zonas de seguridad claramente demarcados."], ["SEISO", "Mantener limpia y libre de residuos la bahía de trabajo."], ["SEISO", "Mantener herramientas y equipos limpios después de su uso."], ["SEIKETSU", "Conservar la señalización y demarcación en buen estado."], ["SHITSUKE", "Realizar inspecciones periódicas de orden y limpieza."]], "Preparación de pintura": [["SEIRI", "Mantener únicamente materiales/insumos necesarios."], ["SEITON", "Organizar materiales, herramientas e insumos en ubicaciones definidas."], ["SEITON", "Mantener pasillos y zonas de seguridad demarcados y despejados."], ["SEISO", "Mantener limpia y ordenada el área de preparación."], ["SEISO", "Mantener limpia el área de lavado de pistolas y retirar residuos."], ["SEIKETSU", "Mantener señalización y estándares visuales."], ["SHITSUKE", "Cumplir rutinas de orden, limpieza e inspección."]], "Pintura": [["SEIRI", "Retirar elementos innecesarios de cabinas y zonas."], ["SEITON", "Herramientas organizadas y ubicación definida."], ["SEITON", "Carro exclusivo para herramientas de pintura."], ["SEITON", "Bahías, pasillos y zonas de seguridad demarcados."], ["SEISO", "Cabinas y áreas de pintura limpias."], ["SEISO", "Área de lavado de pistolas organizada/limpia."], ["SEIKETSU", "Señalización/estándares visuales."], ["SHITSUKE", "Inspecciones periódicas de 5S y seguimiento."]], "Armador": [["SEIRI", "Retirar innecesarios."], ["SEITON", "Herramientas/repuestos organizados y ubicados."], ["SEITON", "Bahía despejada y zonas definidas."], ["SEISO", "Bahía/puesto limpio."], ["SEISO", "Herramientas/equipos limpios después de uso."], ["SEIKETSU", "Demarcación/señalización."], ["SHITSUKE", "Rutinas de orden/limpieza/inspección."]], "Alistador": [["SEIRI", "Retirar innecesarios."], ["SEITON", "Herramientas/insumos ubicados."], ["SEITON", "Bahías demarcadas/ordenadas."], ["SEISO", "Bahía limpia."], ["SEISO", "Lavado de pistolas limpio/organizado cuando aplique."], ["SEIKETSU", "Señalización/estándares."], ["SHITSUKE", "Inspecciones y correcciones."]], "Brillado": [["SEIRI", "Retirar productos/herramientas innecesarios."], ["SEITON", "Productos/herramientas identificados/ordenados."], ["SEITON", "Zona despejada/ubicaciones definidas."], ["SEISO", "Área limpia/residuos retirados."], ["SEISO", "Equipos/herramientas limpios."], ["SEIKETSU", "Señalización/demarcación/estándares."], ["SHITSUKE", "Rutinas de orden/limpieza/inspección."]], "Alistamiento": [["SEIRI", "Retirar elementos innecesarios."], ["SEITON", "Herramientas/insumos organizados."], ["SEITON", "Bahías/pasillos despejados/demarcados."], ["SEISO", "Bahías limpias/ordenadas."], ["SEISO", "Lavado de pistolas organizado cuando aplique."], ["SEIKETSU", "Señalización/estándares."], ["SHITSUKE", "Inspecciones y seguimiento."]], "Control de calidad": [["SEIRI", "Mantener únicamente elementos necesarios para inspección."], ["SEITON", "Formatos/herramientas/elementos organizados."], ["SEISO", "Zona de control final limpia/ordenada."], ["SEIKETSU", "Control final estandarizado."], ["SEIKETSU", "Registrar retornos/retrabajos."], ["SHITSUKE", "Control final al 100% de vehículos."], ["SHITSUKE", "Revisar métricas/indicadores y seguimiento."], ["SHITSUKE", "Auditorías internas periódicas."]], "Entrega": [["SEIRI", "Área libre de elementos innecesarios."], ["SEITON", "Vehículos/documentos/elementos organizados."], ["SEISO", "Área limpia/ordenada."], ["SEIKETSU", "Señalización/estándares."], ["SHITSUKE", "Verificar vehículo cumple condiciones antes de entrega."], ["SHITSUKE", "Registrar/seguir retornos o retrabajos."]]};
+const AREAS = {"Carrocería y latonería":[["SEIRI","Retirar del puesto elementos, materiales y herramientas que no sean necesarios."],["SEITON","Mantener herramientas y equipos ubicados en lugares definidos y señalizados."],["SEITON","Mantener bahías, pasillos y zonas de seguridad claramente demarcados."],["SEISO","Mantener limpia y libre de residuos la bahía de trabajo."],["SEISO","Mantener herramientas y equipos limpios después de su uso."],["SEIKETSU","Conservar la señalización y demarcación en buen estado."],["SHITSUKE","Realizar inspecciones periódicas de orden y limpieza."]],"Preparación de pintura":[["SEIRI","Mantener únicamente materiales e insumos necesarios para el proceso."],["SEITON","Organizar materiales, herramientas e insumos en ubicaciones definidas."],["SEITON","Mantener pasillos y zonas de seguridad demarcados y despejados."],["SEISO","Mantener limpia y ordenada el área de preparación."],["SEISO","Mantener limpia el área de lavado de pistolas y retirar residuos."],["SEIKETSU","Mantener señalización y estándares visuales en buen estado."],["SHITSUKE","Cumplir rutinas de orden, limpieza e inspección."]],"Pintura":[["SEIRI","Retirar elementos innecesarios de cabinas y zonas de trabajo."],["SEITON","Mantener las herramientas organizadas y con ubicación definida."],["SEITON","Disponer de un carro exclusivo para las herramientas de pintura."],["SEITON","Mantener bahías, pasillos y zonas de seguridad correctamente demarcados."],["SEISO","Mantener cabinas y áreas de pintura limpias."],["SEISO","Mantener el área de lavado de pistolas organizada y limpia."],["SEIKETSU","Mantener señalización y estándares visuales en buen estado."],["SHITSUKE","Realizar inspecciones periódicas de 5S y hacer seguimiento."]],"Armador":[["SEIRI","Retirar del área los elementos, materiales y herramientas innecesarios."],["SEITON","Mantener herramientas y repuestos organizados y ubicados en lugares definidos."],["SEITON","Mantener la bahía despejada y las zonas de trabajo definidas."],["SEISO","Mantener limpia y ordenada la bahía o puesto de trabajo."],["SEISO","Mantener herramientas y equipos limpios después de su uso."],["SEIKETSU","Mantener la demarcación y señalización en buen estado."],["SHITSUKE","Cumplir rutinas de orden, limpieza e inspección."]],"Alistador":[["SEIRI","Retirar del área los elementos, materiales y herramientas innecesarios."],["SEITON","Mantener herramientas e insumos ubicados en lugares definidos."],["SEITON","Mantener las bahías demarcadas y ordenadas."],["SEISO","Mantener limpia y ordenada la bahía de trabajo."],["SEISO","Mantener limpia y organizada el área de lavado de pistolas cuando aplique."],["SEIKETSU","Mantener señalización y estándares visuales en buen estado."],["SHITSUKE","Realizar inspecciones y corregir oportunamente las desviaciones."]],"Brillado":[["SEIRI","Retirar productos y herramientas que no sean necesarios para el proceso."],["SEITON","Mantener productos y herramientas identificados y ordenados."],["SEITON","Mantener la zona despejada y con ubicaciones definidas."],["SEISO","Mantener el área limpia y retirar los residuos generados."],["SEISO","Mantener equipos y herramientas limpios después de su uso."],["SEIKETSU","Mantener señalización, demarcación y estándares visuales."],["SHITSUKE","Cumplir rutinas de orden, limpieza e inspección."]],"Alistamiento":[["SEIRI","Retirar del área los elementos, materiales y herramientas innecesarios."],["SEITON","Mantener herramientas e insumos organizados y ubicados."],["SEITON","Mantener bahías y pasillos despejados y correctamente demarcados."],["SEISO","Mantener las bahías limpias y ordenadas."],["SEISO","Mantener organizada el área de lavado de pistolas cuando aplique."],["SEIKETSU","Mantener señalización y estándares visuales en buen estado."],["SHITSUKE","Realizar inspecciones y hacer seguimiento a las acciones de mejora."]],"Control de calidad":[["SEIRI","Mantener únicamente los elementos necesarios para realizar la inspección."],["SEITON","Mantener formatos, herramientas y elementos de inspección organizados."],["SEISO","Mantener limpia y ordenada la zona de control final."],["SEIKETSU","Mantener estandarizado el proceso de control final."],["SEIKETSU","Registrar los retornos y retrabajos identificados durante el proceso."],["SHITSUKE","Realizar el control final al 100% de los vehículos."],["SHITSUKE","Revisar las métricas e indicadores y realizar seguimiento."],["SHITSUKE","Realizar auditorías internas periódicas."]],"Entrega":[["SEIRI","Mantener el área libre de elementos innecesarios."],["SEITON","Mantener vehículos, documentos y elementos de entrega organizados."],["SEISO","Mantener el área limpia y ordenada."],["SEIKETSU","Mantener señalización y estándares visuales en buen estado."],["SHITSUKE","Verificar que el vehículo cumpla las condiciones establecidas antes de la entrega."],["SHITSUKE","Registrar y hacer seguimiento a los retornos o retrabajos."]]};
 const AREA_NAMES = Object.keys(AREAS);
+const DB_NAME = "MassyMotors5S_DB";
+const DB_VERSION = 1;
+const HISTORY_KEY = "massy5s_history_v1";
+let dbPromise = null;
 let currentArea=null,state={};
+
+function openDB(){
+  if(!window.indexedDB) return Promise.reject(new Error("IndexedDB no disponible"));
+  if(dbPromise) return dbPromise;
+  dbPromise=new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("evaluations")){const st=db.createObjectStore("evaluations",{keyPath:"id",autoIncrement:true});st.createIndex("date","date");st.createIndex("area","area");}};
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error("No se pudo abrir la base de datos"));
+  });
+  return dbPromise;
+}
+function readHistoryFallback(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]")}catch(e){return []}}
+function writeHistoryFallback(records){localStorage.setItem(HISTORY_KEY,JSON.stringify(records))}
+async function addEvaluationRecord(record){
+  try{
+    const db=await openDB();
+    return await new Promise((resolve,reject)=>{const tx=db.transaction("evaluations","readwrite");const req=tx.objectStore("evaluations").add(record);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+  }catch(e){
+    const records=readHistoryFallback();record.id=Date.now();records.push(record);writeHistoryFallback(records);return record.id;
+  }
+}
+async function getEvaluationRecords(){
+  try{
+    const db=await openDB();
+    const records=await new Promise((resolve,reject)=>{const tx=db.transaction("evaluations","readonly");const req=tx.objectStore("evaluations").getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    return records.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  }catch(e){
+    return readHistoryFallback().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  }
+}
+async function deleteAllEvaluationRecords(){
+  let dbCleared=false;
+  try{
+    const db=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction("evaluations","readwrite");
+      const store=tx.objectStore("evaluations");
+      store.clear();
+      tx.oncomplete=()=>{dbCleared=true;resolve();};
+      tx.onerror=()=>reject(tx.error||new Error("No se pudo borrar el historial"));
+      tx.onabort=()=>reject(tx.error||new Error("La operación fue cancelada"));
+    });
+  }catch(e){
+    console.warn("No fue posible limpiar IndexedDB; se limpiará el respaldo local.",e);
+  }
+  try{localStorage.removeItem(HISTORY_KEY);}catch(e){console.warn("No se pudo limpiar el respaldo local",e);}
+  return dbCleared;
+}
+function fmtDate(iso){try{return new Intl.DateTimeFormat("es-CO",{dateStyle:"short",timeStyle:"short"}).format(new Date(iso))}catch(e){return iso}}
+function recordStats(records){let done=0,no=0,pending=0;records.forEach(r=>{done+=r.done||0;no+=r.no||0;pending+=r.pending||0});return{done,no,pending,count:records.length}}
+async function renderHistory(){
+  const list=document.getElementById("historyList"),sum=document.getElementById("historySummary");
+  try{
+    const records=await getEvaluationRecords();
+    const rs=recordStats(records);
+    sum.innerHTML='<div class="stat"><strong>'+rs.count+'</strong><span>evaluaciones guardadas</span></div><div class="stat"><strong>'+rs.done+'</strong><span>criterios cumplidos registrados</span></div><div class="stat"><strong>'+rs.no+'</strong><span>criterios no cumplidos</span></div>';
+    if(!records.length){list.innerHTML='<div class="empty">Aún no hay evaluaciones guardadas. Cuando presione “Guardar evaluación”, aparecerá aquí un nuevo registro.</div>';return;}
+    let html='<table><thead><tr><th>Fecha</th><th>Área</th><th>Evaluador</th><th>Porcentaje</th><th>Estado</th><th>Observaciones</th><th>Ver / borrar</th></tr></thead><tbody>';
+    records.forEach((r,i)=>{const obs=(r.observations||[]).filter(x=>String(x||"").trim());const status=r.pct===100?'<span class="badge badge-ok">COMPLETA</span>':r.pct>0?'<span class="badge badge-pend">EN PROCESO</span>':'<span class="badge badge-no">SIN AVANCE</span>';html+='<tr class="history-row"><td>'+esc(fmtDate(r.date))+'</td><td><b>'+esc(r.area)+'</b></td><td>'+esc(r.evaluator||"No registrado")+'</td><td><b>'+r.pct+'%</b></td><td>'+status+'</td><td><button class="obs-toggle" data-detail="detail_'+i+'">'+obs.length+' observación(es) · ver detalle</button></td><td><button class="btn btn-small btn-light delete-record" data-id="'+esc(r.id)+'">🗑 Borrar</button></td></tr><tr><td colspan="8" style="padding-top:0"><div id="detail_'+i+'" class="detail-box"><b>Observaciones y acciones de mejora</b><div style="margin-top:6px">'+(obs.length?obs.map((o,j)=>'<div class="obs-item"><span class="tag">Criterio '+(j+1)+'</span> '+esc(o)+'</div>').join(""):'<div class="muted">No se registraron observaciones por criterio.</div>')+'</div><div style="margin-top:10px"><b>Observación general:</b> '+esc(r.generalObs||"Sin observación general")+'</div><div class="muted" style="margin-top:6px">'+r.done+' ✓ · '+r.no+' X · '+r.pending+' pendientes · '+r.total+' criterios</div></div></td></tr>';});
+    html+='</tbody></table>';list.innerHTML=html;list.querySelectorAll('.obs-toggle').forEach(b=>b.onclick=()=>{document.getElementById(b.dataset.detail).classList.toggle('open')});
+    list.querySelectorAll('.delete-record').forEach(b=>b.onclick=async()=>{if(confirm('¿Borrar esta evaluación del historial? Esta acción no se puede deshacer.')){await deleteEvaluationRecord(b.dataset.id);await renderHistory();}});
+  }catch(e){list.innerHTML='<div class="empty">No se pudo abrir el historial local.</div>';console.error(e)}
+}
+async function exportHistory(){
+  const records=await getEvaluationRecords();
+  const blob=new Blob([JSON.stringify({sistema:"Massy Motors 5S",exportado:new Date().toISOString(),evaluaciones:records},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Massy_Motors_5S_Historial.json";a.click();URL.revokeObjectURL(a.href);
+}
+async function deleteEvaluationRecord(id){
+  try{
+    const db=await openDB();
+    const numericId=Number(id);
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction("evaluations","readwrite");
+      tx.objectStore("evaluations").delete(Number.isNaN(numericId)?id:numericId);
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("No se pudo borrar"));
+      tx.onabort=()=>reject(tx.error||new Error("Operación cancelada"));
+    });
+  }catch(e){console.warn("No se pudo borrar de IndexedDB",e);}
+  try{
+    const records=readHistoryFallback().filter(r=>String(r.id)!==String(id));
+    writeHistoryFallback(records);
+  }catch(e){console.warn("No se pudo borrar del respaldo local",e);}
+}
+async function clearHistory(){
+  const ok=window.confirm("¿Borrar TODAS las evaluaciones guardadas para las pruebas?\n\nEsto NO borra las evaluaciones actuales de las 9 áreas. Solo elimina el historial." );
+  if(!ok)return;
+  const btn=document.getElementById("clearHistoryBtn");
+  const oldText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent="Borrando...";
+  try{
+    await deleteAllEvaluationRecords();
+    await renderHistory();
+    btn.textContent="✓ Historial borrado";
+    setTimeout(()=>{btn.disabled=false;btn.textContent=oldText;},1200);
+  }catch(e){
+    console.error(e);
+    btn.disabled=false;
+    btn.textContent=oldText;
+    alert("No se pudo borrar el historial. Recarga la página e inténtalo nuevamente.");
+  }
+}
+
 function storageKey(a){return "massy5s_v3_"+a}
 function loadState(a){try{return JSON.parse(localStorage.getItem(storageKey(a))||"{}")}catch(e){return {}}}
-function saveState(a,d){localStorage.setItem(storageKey(a),JSON.stringify(d))}
+function saveState(a,d){try{localStorage.setItem(storageKey(a),JSON.stringify(d));return true}catch(e){console.error(e);return false}}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function stats(a){const n=AREAS[a].length,s=loadState(a),r=Array.isArray(s.results)?s.results:[],done=r.filter(v=>v==="✓").length,no=r.filter(v=>v==="X").length,pending=n-done-no;return{n,done,no,pending,pct:n?Math.round(done*100/n):0}}
 function showView(id){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(id).classList.add("active");scrollTo(0,0)}
 function renderDashboard(){const g=document.getElementById("areaGrid");g.innerHTML="";let tn=0,td=0,tx=0,tp=0;AREA_NAMES.forEach((a,i)=>{const s=stats(a);tn+=s.n;td+=s.done;tx+=s.no;tp+=s.pending;const d=document.createElement("div");d.className="area-card";d.innerHTML='<div class="row"><div class="grow"><div class="title">'+(i+1)+". "+esc(a)+'</div><div class="meta">'+s.n+" criterios · "+s.done+" ✓ · "+s.no+" X · "+s.pending+' pendientes</div></div><div class="pct">'+s.pct+'%</div></div><div class="progress"><div style="width:'+s.pct+'%"></div></div><div class="row"><button class="btn btn-primary grow openArea">Evaluar área</button><button class="btn btn-light reportArea">Ver resumen</button></div>';d.querySelector(".openArea").onclick=()=>openArea(a);d.querySelector(".reportArea").onclick=()=>openReport(a);g.appendChild(d)});const o=tn?Math.round(td*100/tn):0;overallPct.textContent=o+"%";overallFill.style.width=o+"%";overallDone.textContent=td;overallNo.textContent=tx;overallPending.textContent=tp}
 function openArea(a){currentArea=a;state=loadState(a);areaTitle.textContent=a;evaluator.value=state.evaluator||"";generalObs.value=state.generalObs||"";saveMessage.textContent="";renderTasks();updateEvaluation();showView("evaluation")}
-function renderTasks(){taskList.innerHTML="";const r=Array.isArray(state.results)?state.results:[],o=Array.isArray(state.observations)?state.observations:[];AREAS[currentArea].forEach((it,i)=>{const v=r[i]||"",d=document.createElement("div");d.className="task "+(v==="✓"?"done":v==="X"?"fail":"");d.id="task_"+i;d.innerHTML='<div class="five">'+esc(it[0])+'</div><div class="task-text">'+esc(it[1])+'</div><div class="row"><button class="btn btn-ok btn-small">✓ CUMPLE</button><button class="btn btn-no btn-small">X NO CUMPLE</button><button class="btn btn-light btn-small">PENDIENTE</button></div><label>Observación / acción de mejora</label><textarea placeholder="Escriba la observación o acción si aplica">'+esc(o[i]||"")+"</textarea>";const bs=d.querySelectorAll("button");bs[0].onclick=()=>setResult(i,"✓");bs[1].onclick=()=>setResult(i,"X");bs[2].onclick=()=>setResult(i,"");d.querySelector("textarea").oninput=e=>{state.observations=Array.isArray(state.observations)?state.observations:[];state.observations[i]=e.target.value;saveState(currentArea,state)};taskList.appendChild(d)})}
+function renderTasks(){taskList.innerHTML="";const r=Array.isArray(state.results)?state.results:[],o=Array.isArray(state.observations)?state.observations:[];AREAS[currentArea].forEach((it,i)=>{const v=r[i]||"",d=document.createElement("div");d.className="task "+(v==="✓"?"done":v==="X"?"fail":"");d.id="task_"+i;d.innerHTML='<div class="five">CRITERIO '+(i+1)+' · '+esc(it[0])+'</div><div class="task-text">'+esc(it[1])+'</div><div class="row"><button class="btn btn-ok btn-small">✓ CUMPLE</button><button class="btn btn-no btn-small">X NO CUMPLE</button><button class="btn btn-light btn-small">PENDIENTE</button></div><label>Observación / acción de mejora</label><textarea placeholder="Escriba la observación o acción si aplica">'+esc(o[i]||"")+"</textarea>";const bs=d.querySelectorAll("button");bs[0].onclick=()=>setResult(i,"✓");bs[1].onclick=()=>setResult(i,"X");bs[2].onclick=()=>setResult(i,"");d.querySelector("textarea").oninput=e=>{state.observations=Array.isArray(state.observations)?state.observations:[];state.observations[i]=e.target.value;saveState(currentArea,state)};taskList.appendChild(d)})}
 function setResult(i,v){state.results=Array.isArray(state.results)?state.results:[];state.results[i]=v;saveState(currentArea,state);renderTasks();updateEvaluation()}
 function updateEvaluation(){const s=stats(currentArea);areaPct.textContent=s.pct+"%";areaFill.style.width=s.pct+"%";areaCounts.textContent=s.done+" ✓ · "+s.no+" X · "+s.pending+" pendientes"}
-function saveEvaluation(){state.evaluator=evaluator.value.trim();state.generalObs=generalObs.value.trim();state.updatedAt=new Date().toISOString();saveState(currentArea,state);saveMessage.textContent="✓ Evaluación guardada correctamente en este dispositivo.";renderDashboard()}
+async function saveEvaluation(){
+  if(!currentArea){saveMessage.textContent="Seleccione un área antes de guardar.";return;}
+  state.evaluator=document.getElementById("evaluator").value.trim();
+  state.generalObs=document.getElementById("generalObs").value.trim();
+  state.updatedAt=new Date().toISOString();
+  const stateSaved=saveState(currentArea,state);
+  const s=stats(currentArea);
+  const record={date:new Date().toISOString(),area:currentArea,evaluator:state.evaluator,generalObs:state.generalObs,results:Array.isArray(state.results)?[...state.results]:[],observations:Array.isArray(state.observations)?[...state.observations]:[],total:s.n,done:s.done,no:s.no,pending:s.pending,pct:s.pct};
+  try{
+    await addEvaluationRecord(record);
+    saveMessage.textContent=(stateSaved?"✓":"⚠️")+" Evaluación guardada correctamente. Porcentaje: "+s.pct+"%. El registro quedó en el historial de este dispositivo.";
+    await renderHistory();
+    renderDashboard();
+  }catch(e){
+    saveMessage.textContent="No se pudo guardar la evaluación. Intente nuevamente.";
+    console.error("Error al guardar:",e);
+  }
+}
 function resetEvaluation(){if(!currentArea)return;if(confirm("Se borrará la evaluación de prueba de "+currentArea+". ¿Desea continuar?")){localStorage.removeItem(storageKey(currentArea));state={};openArea(currentArea)}}
 function openReport(a){const s=stats(a),saved=loadState(a);reportTitle.textContent=a;let rows="";AREAS[a].forEach((it,i)=>{const r=(saved.results||[])[i]||"",o=(saved.observations||[])[i]||"",b=r==="✓"?'<span class="badge badge-ok">✓ CUMPLE</span>':r==="X"?'<span class="badge badge-no">X NO CUMPLE</span>':'<span class="badge badge-pend">PENDIENTE</span>';rows+="<tr><td><b>"+esc(it[0])+"</b></td><td>"+esc(it[1])+"</td><td>"+b+"</td><td>"+esc(o)+"</td></tr>"});reportBody.innerHTML='<div class="row"><div class="grow"><div class="muted">Porcentaje del área</div><div class="pct">'+s.pct+'%</div></div><div class="muted">'+s.done+" ✓ · "+s.no+" X · "+s.pending+' pendientes</div></div><div class="progress"><div style="width:'+s.pct+'%"></div></div><p class="muted">Evaluador: '+esc(saved.evaluator||"No registrado")+'<br>Última actualización: '+esc(saved.updatedAt||"No registrada")+'</p><div style="overflow:auto"><table><thead><tr><th>5S</th><th>Criterio</th><th>Resultado</th><th>Observación / acción</th></tr></thead><tbody>'+rows+"</tbody></table></div>";showView("report")}
-backBtn.onclick=()=>{renderDashboard();showView("dashboard")};reportBack.onclick=()=>{renderDashboard();showView("dashboard")};saveBtn.onclick=saveEvaluation;resetBtn.onclick=resetEvaluation;renderDashboard();
+backBtn.onclick=()=>{renderDashboard();showView("dashboard")};reportBack.onclick=()=>{renderDashboard();showView("dashboard")};saveBtn.onclick=saveEvaluation;resetBtn.onclick=resetEvaluation;
+document.getElementById("refreshHistoryBtn").onclick=renderHistory;
+document.getElementById("exportHistoryBtn").onclick=exportHistory;
+document.getElementById("clearHistoryBtn").onclick=clearHistory;
+renderDashboard();renderHistory();
 </script>
 </body></html>
