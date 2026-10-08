@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1f3a">
+<title>Massy Motors | Sistema de Gestión y Control de Calidad 5S</title>
+<style>
+:root{--navy:#0b1f3a;--blue:#164e86;--green:#16834a;--red:#b42318;--gray:#eef2f6;--line:#d8dee8;--text:#17202a;--muted:#64748b;--white:#fff;--shadow:0 6px 20px rgba(15,23,42,.09)}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f4f6f9;color:var(--text);font-family:Arial,Helvetica,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.topbar{position:sticky;top:0;z-index:50;background:var(--navy);color:#fff;padding:14px 16px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-size:18px;font-weight:800;letter-spacing:.2px}.brand small{display:block;font-size:11px;font-weight:500;opacity:.78;margin-top:3px}
+.container{max-width:980px;margin:auto;padding:14px 12px 50px}
+.view{display:none}.view.active{display:block}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:var(--shadow)}
+.hero{background:linear-gradient(135deg,#0b1f3a,#164e86);color:#fff;border:0}
+h1{font-size:23px;margin:0 0 6px}h2{font-size:18px;margin:0 0 8px}h3{font-size:15px;margin:0 0 5px}
+p{margin:6px 0;line-height:1.45}.muted{color:var(--muted);font-size:13px}.hero .muted{color:#dbeafe}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.area-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:var(--shadow)}
+.area-card .title{font-weight:800}.area-card .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.grow{flex:1}
+.pct{font-size:26px;font-weight:900}.progress{height:13px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:9px 0}.progress>div{height:100%;width:0;background:#22a05a;border-radius:99px;transition:width .2s ease}
+.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800}.btn-primary{background:var(--navy);color:#fff}.btn-light{background:#e8edf3;color:#1f2937}.btn-ok{background:#dcfce7;color:#166534}.btn-no{background:#fee2e2;color:#991b1b}.btn-small{padding:8px 10px;font-size:12px}
+.notice{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:12px;color:#475569;line-height:1.45}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.stat{background:#f8fafc;border-radius:12px;padding:10px;text-align:center}.stat strong{display:block;font-size:20px}.stat span{font-size:11px;color:var(--muted)}
+.task{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;margin:10px 0}.task.done{border-color:#86efac;background:#f0fdf4}.task.fail{border-color:#fca5a5;background:#fff7f7}
+.five{font-size:11px;font-weight:900;color:#475569;letter-spacing:.5px}.task-text{font-size:14px;line-height:1.45;margin:6px 0 12px}
+label{display:block;font-size:11px;font-weight:800;color:#475569;margin:11px 0 5px}input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#fff}textarea{min-height:62px;resize:vertical}
+.sticky-actions{position:sticky;bottom:0;background:rgba(244,246,249,.96);padding:10px 0 0;z-index:10}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:top}th{background:#f8fafc}
+.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.badge-ok{background:#dcfce7;color:#166534}.badge-no{background:#fee2e2;color:#991b1b}.badge-pend{background:#e5e7eb;color:#475569}
+.search{margin-bottom:10px}.login-card p{color:#64748b;font-size:13px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(3,1fr)}.container{padding:10px 10px 40px}.card{padding:13px}.hero h1{font-size:20px}.task .row{gap:6px}.task .btn{flex:1;min-width:105px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">MASSY MOTORS · SISTEMA DE GESTIÓN Y CONTROL DE CALIDAD 5S
+    <small>Checklist móvil · evaluación por área</small>
+  </div>
+</header>
+
+
+<main id="appMain" class="container">
+  <section id="dashboard" class="view active">
+    <div class="card hero">
+      <h1>Control de calidad 5S</h1>
+      <p class="muted">Seleccione un área y registre únicamente el avance real de las 5S. Cada ✓ aumenta automáticamente el porcentaje; X y Pendiente no lo aumentan.</p>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="grow"><h2>Resumen general</h2><div class="muted">Estado de las 7 áreas en este dispositivo</div></div>
+        <div class="pct" id="overallPct">0%</div>
+      </div>
+      <div class="progress"><div id="overallFill"></div></div>
+      <div class="statgrid">
+        <div class="stat"><strong id="overallDone">0</strong><span>✓ cumplidas</span></div>
+        <div class="stat"><strong id="overallNo">0</strong><span>X no cumplidas</span></div>
+        <div class="stat"><strong id="overallPending">0</strong><span>pendientes</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Áreas de evaluación</h2>
+      <p class="muted">Cada área tiene su propio porcentaje y su propio checklist.</p>
+      <div id="areaGrid" class="grid"></div>
+    </div>
+
+<div class="card">
+      <div class="row">
+        <div class="grow">
+          <h2>Historial de evaluaciones</h2>
+          <p class="muted">Registro de cada evaluación guardada, con porcentaje y observaciones desplegables.</p>
+        </div>
+        <button id="refreshHistoryBtn" class="btn btn-light btn-small">Actualizar</button>
+      </div>
+
+      <div class="row" style="gap:8px; margin:10px 0; flex-wrap:wrap">
+        <button id="exportHistoryBtn" class="btn btn-primary btn-small">Exportar registros</button>
+        <button id="clearHistoryBtn" class="btn btn-light btn-small">🗑 Borrar historial de pruebas</button>
+      </div>
+
+      <div class="statgrid">
+        <div class="stat"><strong id="historyEvaluations">0</strong><span>evaluaciones<br>guardadas</span></div>
+        <div class="stat"><strong id="historyDone">0</strong><span>criterios cumplidos<br>registrados</span></div>
+        <div class="stat"><strong id="historyNo">0</strong><span>criterios no<br>cumplidos</span></div>
+      </div>
+
+      <div id="historyEmpty" class="notice" style="margin-top:12px;text-align:center;padding:20px;font-size:15px">
+        Aún no hay evaluaciones guardadas. Cuando presione “Guardar evaluación”, aparecerá aquí un nuevo registro.
+      </div>
+      <div id="historyList"></div>
+
+      <p class="muted" style="margin-top:12px">
+        Los registros se guardan en la base de datos local del navegador de este dispositivo.
+        Para compartirlos o conservar una copia, use “Exportar registros”.
+      </p>
+    </div>
+    <div class="card">
+      <h2>Regla del porcentaje</h2>
+      <div class="notice"><b>Porcentaje = tareas con ✓ ÷ total de tareas × 100.</b><br>
+      Una X significa que la tarea no está cumplida y no suma.<br>
+      Pendiente tampoco suma.</div>
+    </div>
+  </section>
+
+  <section id="evaluation" class="view">
+    <div class="card">
+      <div class="row">
+        <button id="backBtn" class="btn btn-light">← Áreas</button>
+        <div class="grow"></div>
+        <b id="areaTitle"></b>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <div class="muted">Cumplimiento del área</div>
+          <div id="areaPct" class="pct">0%</div>
+        </div>
+        <div class="muted" id="areaCounts">0 ✓ · 0 X · 0 pendientes</div>
+      </div>
+      <div class="progress"><div id="areaFill"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Datos de la evaluación</h2>
+      <label for="evaluator">Evaluador (opcional)</label>
+      <input id="evaluator" placeholder="Nombre o código autorizado">
+      <label for="generalObs">Observación general (opcional)</label>
+      <textarea id="generalObs" placeholder="Observaciones generales del área"></textarea>
+    </div>
+
+    <div id="taskList"></div>
+
+    <div class="sticky-actions">
+      <div class="card">
+        <div class="row">
+          <button id="saveBtn" class="btn btn-primary grow">Guardar evaluación</button>
+          <button id="resetBtn" class="btn btn-light">Reiniciar prueba</button>
+        </div>
+        <p id="saveMessage" class="muted"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="report" class="view">
+    <div class="card">
+      <div class="row"><button id="reportBack" class="btn btn-light">← Áreas</button><div class="grow"></div><b id="reportTitle"></b></div>
+    </div>
+    <div class="card">
+      <h2>Resumen del área</h2>
+      <div id="reportBody"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const AREAS = {"Carrocería":[["SEIRI","Retirar elementos innecesarios."],["SEITON","Ordenar herramientas y materiales."],["SEISO","Mantener limpia el área."],["SEIKETSU","Conservar señalización y estándares."],["SHITSUKE","Cumplir orden, limpieza e inspección."]],"Pintura":[["SEIRI","Retirar elementos innecesarios."],["SEITON","Ordenar herramientas de pintura."],["SEISO","Mantener limpias las cabinas."],["SEIKETSU","Conservar señalización y estándares."],["SHITSUKE","Realizar inspección 5S."]],"Brillado":[["SEIRI","Retirar productos innecesarios."],["SEITON","Ordenar productos y herramientas."],["SEISO","Mantener limpia el área."],["SEIKETSU","Conservar señalización y estándares."],["SHITSUKE","Cumplir orden, limpieza e inspección."]],"Mecánica":[["SEIRI","Retirar elementos innecesarios."],["SEITON","Ordenar herramientas y repuestos."],["SEISO","Mantener limpia la bahía."],["SEIKETSU","Conservar demarcación y señalización."],["SHITSUKE","Cumplir orden, limpieza e inspección."]],"Lavado":[["SEIRI","Retirar elementos innecesarios."],["SEITON","Ordenar herramientas e insumos."],["SEISO","Mantener limpia la bahía."],["SEIKETSU","Conservar señalización y estándares."],["SHITSUKE","Inspeccionar y corregir."]],"Control calidad":[["SEIRI","Mantener solo elementos necesarios."],["SEITON","Ordenar formatos y herramientas."],["SEISO","Mantener limpia la zona de control."],["SEIKETSU","Mantener el control estandarizado."],["SHITSUKE","Cumplir el control y seguimiento."]],"Colorimetría":[["SEIRI","Retirar materiales innecesarios."],["SEITON","Ordenar herramientas e insumos."],["SEISO","Mantener limpia el área."],["SEIKETSU","Conservar señalización y estándares."],["SHITSUKE","Cumplir orden, limpieza e inspección."]]};
+const AREA_NAMES = ["Carrocería", "Pintura", "Brillado", "Mecánica", "Lavado", "Control calidad", "Colorimetría"];
+let currentArea = null;
+let state = {};
+
+function storageKey(area){ return "massy5s_v2_" + area; }
+
+function loadState(area){
+  try { return JSON.parse(localStorage.getItem(storageKey(area)) || "{}"); }
+  catch(e){ return {}; }
+}
+function saveState(area, data){ localStorage.setItem(storageKey(area), JSON.stringify(data)); }
+
+function escapeHTML(value){
+  return String(value ?? "").replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+function stats(area){
+  const n = AREAS[area].length;
+  const s = loadState(area);
+  const results = Array.isArray(s.results) ? s.results : [];
+  const done = results.filter(v => v === "✓").length;
+  const no = results.filter(v => v === "X").length;
+  const pending = n - done - no;
+  const pct = n ? Math.round(done * 100 / n) : 0;
+  return {n, done, no, pending, pct};
+}
+function showView(id){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+
+function renderDashboard(){
+  const grid = document.getElementById("areaGrid");
+  grid.innerHTML = "";
+  let totalN=0,totalDone=0,totalNo=0,totalPending=0;
+
+  AREA_NAMES.forEach(function(area, index){
+    const s = stats(area);
+    totalN += s.n; totalDone += s.done; totalNo += s.no; totalPending += s.pending;
+    const card = document.createElement("div");
+    card.className = "area-card";
+    card.innerHTML =
+      '<div class="row"><div class="grow"><div class="title">'+(index+1)+'. '+escapeHTML(area)+'</div>'+
+      '<div class="meta">'+s.n+' criterios · '+s.done+' ✓ · '+s.no+' X · '+s.pending+' pendientes</div></div>'+
+      '<div class="pct">'+s.pct+'%</div></div>'+
+      '<div class="progress"><div style="width:'+s.pct+'%"></div></div>'+
+      '<div class="row"><button class="btn btn-primary grow openArea" data-area="'+escapeHTML(area)+'">Evaluar área</button>'+
+      '<button class="btn btn-light reportArea" data-area="'+escapeHTML(area)+'">Ver resumen</button></div>';
+    grid.appendChild(card);
+  });
+
+  const overall = totalN ? Math.round(totalDone * 100 / totalN) : 0;
+  document.getElementById("overallPct").textContent = overall+"%";
+  document.getElementById("overallFill").style.width = overall+"%";
+  document.getElementById("overallDone").textContent = totalDone;
+  document.getElementById("overallNo").textContent = totalNo;
+  document.getElementById("overallPending").textContent = totalPending;
+
+  document.querySelectorAll(".openArea").forEach(btn => btn.addEventListener("click", () => openArea(btn.dataset.area)));
+  document.querySelectorAll(".reportArea").forEach(btn => btn.addEventListener("click", () => openReport(btn.dataset.area)));
+}
+
+function openArea(area){
+  currentArea = area;
+  state = loadState(area);
+  document.getElementById("areaTitle").textContent = area;
+  document.getElementById("evaluator").value = state.evaluator || "";
+  document.getElementById("generalObs").value = state.generalObs || "";
+  document.getElementById("saveMessage").textContent = "";
+  renderTasks();
+  updateEvaluation();
+  showView("evaluation");
+}
+
+function renderTasks(){
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+  const results = Array.isArray(state.results) ? state.results : [];
+  const observations = Array.isArray(state.observations) ? state.observations : [];
+
+  AREAS[currentArea].forEach(function(item, i){
+    const result = results[i] || "";
+    const div = document.createElement("div");
+    div.className = "task " + (result === "✓" ? "done" : result === "X" ? "fail" : "");
+    div.id = "task_"+i;
+    div.innerHTML =
+      '<div class="five">'+escapeHTML(item[0])+'</div>'+
+      '<div class="task-text">'+escapeHTML(item[1])+'</div>'+
+      '<div class="row">'+
+        '<button class="btn btn-ok btn-small resultBtn" data-i="'+i+'" data-value="✓">✓ CUMPLE</button>'+
+        '<button class="btn btn-no btn-small resultBtn" data-i="'+i+'" data-value="X">X NO CUMPLE</button>'+
+        '<button class="btn btn-light btn-small resultBtn" data-i="'+i+'" data-value="">PENDIENTE</button>'+
+      '</div>'+
+      '<label>Observación / acción de mejora</label>'+
+      '<textarea class="obsField" data-i="'+i+'" placeholder="Escriba la observación o acción si aplica">'+escapeHTML(observations[i] || "")+'</textarea>';
+    list.appendChild(div);
+  });
+
+  list.querySelectorAll(".resultBtn").forEach(btn => {
+    btn.addEventListener("click", function(){
+      setResult(Number(btn.dataset.i), btn.dataset.value);
+    });
+  });
+  list.querySelectorAll(".obsField").forEach(field => {
+    field.addEventListener("input", function(){
+      const i = Number(field.dataset.i);
+      state.observations = Array.isArray(state.observations) ? state.observations : [];
+      state.observations[i] = field.value;
+      saveState(currentArea, state);
+    });
+  });
+}
+
+function setResult(i, value){
+  state.results = Array.isArray(state.results) ? state.results : [];
+  state.results[i] = value;
+  saveState(currentArea, state);
+  const task = document.getElementById("task_"+i);
+  task.className = "task " + (value === "✓" ? "done" : value === "X" ? "fail" : "");
+  updateEvaluation();
+}
+
+function updateEvaluation(){
+  const s = stats(currentArea);
+  document.getElementById("areaPct").textContent = s.pct+"%";
+  document.getElementById("areaFill").style.width = s.pct+"%";
+  document.getElementById("areaCounts").textContent = s.done+" ✓ · "+s.no+" X · "+s.pending+" pendientes";
+}
+
+const HISTORY_KEY = "massy5s_history_v3";
+
+function loadHistory(){
+  const keys = [
+    HISTORY_KEY,
+    "massy5s_history_v2",
+    "massy5s_history_v1",
+    "massy5s_history",
+    "massy_motors_5s_registro_diario_v1"
+  ];
+
+  const all = [];
+  const seen = new Set();
+
+  keys.forEach(function(key){
+    try{
+      const raw = localStorage.getItem(key);
+      if(!raw) return;
+
+      const data = JSON.parse(raw);
+      if(!Array.isArray(data)) return;
+
+      data.forEach(function(r, index){
+        const record = {
+          id: r.id || (Date.now() + index + Math.floor(Math.random()*1000)),
+          date: r.date || r.fecha || r.updatedAt || new Date().toISOString(),
+          area: r.area || r.Área || r.areaName || "",
+          pct: Number(r.pct ?? r.porcentaje ?? r.resultado ?? 0),
+          done: Number(r.done ?? r.cumplidos ?? r.criteriosCumplidos ?? 0),
+          no: Number(r.no ?? r.noCumplidos ?? r.criteriosNoCumplidos ?? 0),
+          pending: Number(r.pending ?? r.pendientes ?? r.criteriosPendientes ?? 0),
+          evaluator: r.evaluator || r.evaluador || "",
+          obs: r.obs || r.observacion || r.generalObs || "",
+          observations: Array.isArray(r.observations) ? r.observations : []
+        };
+
+        const unique = String(record.id) + "|" + record.date + "|" + record.area;
+        if(record.area && !seen.has(unique)){
+          seen.add(unique);
+          all.push(record);
+        }
+      });
+    }catch(e){}
+  });
+
+  all.sort(function(a,b){
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
+
+  return all;
+}
+function saveHistory(history){
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function saveEvaluation(){
+  state.evaluator = document.getElementById("evaluator").value.trim();
+  state.generalObs = document.getElementById("generalObs").value.trim();
+  state.updatedAt = new Date().toISOString();
+  saveState(currentArea, state);
+
+  const st = stats(currentArea);
+  const now = new Date();
+  const history = loadHistory();
+
+  history.unshift({
+    id: Date.now(),
+    date: now.toISOString(),
+    area: currentArea,
+    pct: st.pct,
+    done: st.done,
+    no: st.no,
+    pending: st.pending,
+    evaluator: state.evaluator,
+    obs: state.generalObs,
+    observations: Array.isArray(state.observations) ? state.observations.slice() : []
+  });
+
+  saveHistory(history);
+  document.getElementById("saveMessage").textContent = "✓ Evaluación guardada correctamente.";
+  renderDashboard();
+  renderHistory();
+}
+
+function deleteHistoryRecord(id){
+  if(!window.confirm("¿Borrar esta evaluación del historial?")) return;
+  saveHistory(loadHistory().filter(r => String(r.id) !== String(id)));
+  renderHistory();
+}
+
+function clearHistory(){
+  if(!window.confirm("¿Borrar todo el historial de evaluaciones?")) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function exportHistory(){
+  const history = loadHistory();
+  if(!history.length){
+    window.alert("No hay registros para exportar.");
+    return;
+  }
+  const header = ["Fecha","Hora","Área","Porcentaje","Cumplidas","No cumplidas","Pendientes","Evaluador","Observación general"];
+  const rows = history.map(r => {
+    const d = new Date(r.date);
+    return [
+      d.toLocaleDateString("es-CO"),
+      d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}),
+      r.area, r.pct+"%", r.done, r.no, r.pending, r.evaluator || "", r.obs || ""
+    ];
+  });
+  const csv = [header, ...rows].map(row =>
+    row.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(";")
+  ).join("\r\n");
+  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "registros_5S_Massy_Motors.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderHistory(){
+  const el = document.getElementById("historyList");
+  const empty = document.getElementById("historyEmpty");
+  const history = loadHistory();
+
+  document.getElementById("historyEvaluations").textContent = history.length;
+  document.getElementById("historyDone").textContent =
+    history.reduce((sum,r) => sum + Number(r.done || 0), 0);
+  document.getElementById("historyNo").textContent =
+    history.reduce((sum,r) => sum + Number(r.no || 0), 0);
+
+  if(!history.length){
+    empty.style.display = "block";
+    el.innerHTML = "";
+    return;
+  }
+
+  empty.style.display = "none";
+
+  const days = {};
+  history.forEach(r => {
+    const d = new Date(r.date);
+    const key = d.toLocaleDateString("es-CO", {
+      weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"
+    });
+    if(!days[key]) days[key] = [];
+    days[key].push(r);
+  });
+
+  el.innerHTML = Object.keys(days).map(day => {
+    const rows = days[day].map(r => {
+      const d = new Date(r.date);
+      const observations = Array.isArray(r.observations) ? r.observations : [];
+      const detail = observations
+        .map((obs,i) => obs ? "<div style='margin:5px 0'><b>5S "+(i+1)+":</b> "+escapeHTML(obs)+"</div>" : "")
+        .join("");
+
+      return `
+        <div style="border-top:1px solid var(--line);padding:11px 0">
+          <div class="row">
+            <div class="grow">
+              <b>${escapeHTML(r.area)}</b>
+              <div class="muted">${d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}
+                · ${r.done} ✓ · ${r.no} X · ${r.pending} pendientes
+                ${r.evaluator ? " · "+escapeHTML(r.evaluator) : ""}</div>
+            </div>
+            <strong style="font-size:22px">${r.pct}%</strong>
+            <button class="btn btn-light btn-small" onclick="deleteHistoryRecord(${r.id})">🗑</button>
+          </div>
+          ${r.obs ? `<div class="muted" style="margin-top:6px">${escapeHTML(r.obs)}</div>` : ""}
+          <details style="margin-top:8px">
+            <summary style="cursor:pointer;font-weight:700;font-size:12px">Ver observaciones</summary>
+            <div class="notice" style="margin-top:7px">${detail || "Sin observaciones registradas."}</div>
+          </details>
+        </div>`;
+    }).join("");
+
+    return `<div class="notice" style="margin:10px 0"><b style="text-transform:capitalize">${day}</b>${rows}</div>`;
+  }).join("");
+}
+
+function refreshHistory(){
+  renderDashboard();
+  renderHistory();
+}
+
+function resetEvaluation(){
+  if (!currentArea) return;
+  const ok = window.confirm("Se borrará la evaluación de prueba de "+currentArea+". ¿Desea continuar?");
+  if (!ok) return;
+  localStorage.removeItem(storageKey(currentArea));
+  state = {};
+  openArea(currentArea);
+}
+
+function openReport(area){
+  const s = stats(area);
+  const saved = loadState(area);
+  document.getElementById("reportTitle").textContent = area;
+  let rows = "";
+  AREAS[area].forEach(function(item,i){
+    const r = (saved.results || [])[i] || "";
+    const obs = (saved.observations || [])[i] || "";
+    const badge = r === "✓" ? '<span class="badge badge-ok">✓ CUMPLE</span>' :
+                  r === "X" ? '<span class="badge badge-no">X NO CUMPLE</span>' :
+                  '<span class="badge badge-pend">PENDIENTE</span>';
+    rows += "<tr><td><b>"+escapeHTML(item[0])+"</b></td><td>"+escapeHTML(item[1])+"</td><td>"+badge+"</td><td>"+escapeHTML(obs)+"</td></tr>";
+  });
+  document.getElementById("reportBody").innerHTML =
+    '<div class="row"><div class="grow"><div class="muted">Porcentaje del área</div><div class="pct">'+s.pct+'%</div></div>'+
+    '<div class="muted">'+s.done+' ✓ · '+s.no+' X · '+s.pending+' pendientes</div></div>'+
+    '<div class="progress"><div style="width:'+s.pct+'%"></div></div>'+
+    '<p class="muted">Evaluador: '+escapeHTML(saved.evaluator || "No registrado")+'<br>Última actualización: '+escapeHTML(saved.updatedAt || "No registrada")+'</p>'+
+    '<div style="overflow:auto"><table><thead><tr><th>5S</th><th>Criterio</th><th>Resultado</th><th>Observación / acción</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  showView("report");
+}
+
+document.getElementById("backBtn").addEventListener("click", function(){ renderDashboard(); showView("dashboard"); });
+document.getElementById("reportBack").addEventListener("click", function(){ renderDashboard(); showView("dashboard"); });
+document.getElementById("saveBtn").addEventListener("click", saveEvaluation);
+document.getElementById("clearHistoryBtn").addEventListener("click", clearHistory);
+document.getElementById("refreshHistoryBtn").addEventListener("click", refreshHistory);
+document.getElementById("exportHistoryBtn").addEventListener("click", exportHistory);
+document.getElementById("resetBtn").addEventListener("click", resetEvaluation);
+renderDashboard();
+renderHistory();
+
+</script>
+</body>
+</html>
